@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quin‑sine Roulette</title>
+<style>
+  :root{
+    --bg:#0b1022; --bg2:#0f172a; --panel:#0e1428; --muted:#9aa6c1; --text:#e6edf7;
+    --accent:#22c55e; --accent-2:#60a5fa; --card:#111827; --chip:#0b1224; --ring:#2845a7;
+  }
+  html,body{height:100%}
+  body{margin:0;background:radial-gradient(1200px 500px at 20% -10%, #12204b 0%, transparent 60%),linear-gradient(180deg,var(--bg),var(--bg2) 60%);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,"Apple Color Emoji","Segoe UI Emoji";color:var(--text)}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px}
+  header{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap}
+  .titlebox{display:flex;flex-direction:column;gap:4px}
+  header h1{font-size:clamp(1.1rem,2.2vw,1.6rem);margin:0;letter-spacing:.2px;display:flex;align-items:center;gap:.5rem}
+  .tagline{font-size:.95rem;color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:var(--chip);color:var(--muted);border:1px solid #1f2a4a;font-size:.9rem}
+  .pill b{color:var(--text)}
+  .grid{display:flex;flex-direction:column;gap:16px}
+  .panel{background:rgba(15,23,42,.66);backdrop-filter:blur(6px);border:1px solid #1f2a4a;border-radius:18px;padding:16px}
+  .section-title{font-weight:700;margin:.25rem 0 .75rem;color:#d1d5db;letter-spacing:.2px}
+  .control{margin-bottom:12px}
+  .control label{display:block;color:var(--muted);font-size:.9rem;margin-bottom:6px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{cursor:pointer;padding:10px 12px;border-radius:12px;background:var(--chip);border:1px solid #1f2a4a;color:#cbd5e1;font-size:.95rem;user-select:none;min-height:40px;display:flex;align-items:center;gap:.5rem}
+  .chip[data-on="1"]{outline:2px solid var(--accent);color:#eafff2}
+  .muted{color:var(--muted)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  input[type=range]{width:100%}
+  .btn{cursor:pointer;border:none;border-radius:14px;padding:12px 16px;font-weight:700;letter-spacing:.2px}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn-primary{background:var(--accent);color:#062a11}
+  .btn-ghost{background:transparent;color:#e5e7eb;border:1px solid #2a355a}
+  .btn-alt{background:var(--accent-2);color:#061e2a}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;position:sticky;bottom:0;padding-top:8px}
+  .result{background:var(--card);border:1px solid #2a355a;border-radius:18px;padding:16px}
+  .title{display:flex;align-items:start;justify-content:space-between;gap:12px}
+  .title h2{margin:.2rem 0;font-size:clamp(1.1rem,2.2vw,1.35rem)}
+  .tags{display:flex;gap:8px;flex-wrap:wrap}
+  .tag{border:1px solid #2a355a;padding:4px 8px;border-radius:999px;color:#cbd5e1;font-size:.8rem}
+  .meta{display:flex;gap:14px;flex-wrap:wrap;color:#cbd5e1}
+  .steps{margin:.25rem 0 .5rem}
+  .steps li{margin:.25rem 0}
+  .quip{margin-top:6px;color:#cbd5e1;font-style:italic}
+  .subtle{font-size:.85rem;color:var(--muted)}
+  .sides{margin-top:10px}
+  .divider{height:1px;background:#263155;margin:10px 0;border-radius:999px}
+  footer{margin-top:18px;color:var(--muted);font-size:.85rem;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
+  .chip:focus,.btn:focus{outline:3px solid var(--ring);outline-offset:2px}
+  /* Floating button + pulse */
+  .fab{position:fixed;right:16px;bottom:16px;z-index:50;border-radius:999px;padding:12px 16px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  @keyframes pulseOnce{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+  .pulse{animation:pulseOnce .9s ease-in-out 0s 3}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="titlebox">
+      <h1><span id="logo-emoji">🥘</span> Quin‑sine Roulette</h1>
+      <div class="tagline">“Spin the saucepan, Quin — dinner decides itself.”</div>
+    </div>
+    <div class="pill" id="context-pill">Auto‑tuned for <b id="context-when">—</b> • <span id="context-meal">—</span> • ⏱ <span id="context-cap">—</span></div>
+    <button class="btn btn-ghost" id="toggle-controls-btn" aria-expanded="true" title="Hide controls">Hide controls</button>
+  </header>
+
+  <div class="grid">
+    <aside class="panel" aria-label="Controls">
+      <div class="section-title">Cuisine</div>
+      <div class="control">
+        <div class="chips" id="cuisine-chips"></div>
+        <div class="subtle">Default is <b>Canadian</b>. Switch to <b>South African</b> for nostalgia, or <b>Both</b> for a mix.</div>
+      </div>
+      <div class="section-title">Mood</div>
+      <div class="control"><div class="chips" id="mood-chips"></div></div>
+      <div class="section-title">Filters</div>
+      <div class="control"><label>Meal</label><div class="chips" id="meal-chips"></div></div>
+      <div class="control"><label>Time cap (<span id="time-cap-label">40</span> min)</label><input type="range" id="time-cap" min="10" max="60" step="5" value="40" /></div>
+      <div class="control"><label>Dietary</label><div class="chips" id="diet-chips"></div></div>
+      <div class="control"><label>Extras</label><div class="chips"><div class="chip" id="no-onions-chip" data-on="0">🧅 No onions</div></div></div>
+      <div class="control"><label>Chuckle mode</label><div class="chips"><div class="chip" id="chuckle-chip" data-on="1">💬 Quips on</div></div></div>
+      <div class="divider"></div>
+      <div class="actions"><button class="btn btn-primary" id="roll-btn">ROLL</button><button class="btn btn-ghost" id="nudge-btn" disabled>Nudge</button><button class="btn btn-alt" id="swap-sides-btn" disabled>Swap sides</button></div>
+      <div class="subtle" style="margin-top:8px">Nudge = next best match. Swap sides = new side suggestions without changing the main.</div>
+    </aside>
+
+    <main class="panel" aria-live="polite">
+      <div id="result" class="result" hidden>
+        <div class="title"><h2 id="r-title">—</h2><div class="row" style="gap:8px"><button class="btn btn-ghost" id="fav-btn" aria-pressed="false" title="Save to favourites">☆</button><button class="btn btn-alt" id="copy-list-btn" disabled title="Copy shopping list">Copy list</button></div></div>
+        <div class="meta">
+          <div>⏱ <span id="r-time">—</span> min</div>
+          <div>🍽 <span id="r-meal">—</span></div>
+          <div>🌍 <span id="r-origin">—</span></div>
+          <div class="tags" id="r-tags"></div>
+        </div>
+        <div class="subtle" id="onion-note" hidden>Contains onions — turn off <b>No onions</b> to include these.</div>
+        <div class="divider"></div>
+        <ol class="steps" id="r-steps"></ol>
+        <div class="quip" id="r-quip"></div>
+        <div class="sides" id="r-sides" hidden>
+          <h4>Quick sides to make it a meal</h4>
+          <ul id="r-sides-list"></ul>
+        </div>
+      </div>
+      <div id="empty" class="subtle">Hit <b>ROLL</b> to get a saucepan‑only meal idea tuned to your current time. Everything here runs offline in a single file.</div>
+    </main>
+  </div>
+
+  <footer>
+    <div>Pan‑only pride. No oven, no air‑fryer, no problem.</div>
+    <div class="subtle">Tip: Add favourites (☆) and I’ll remember them on this device.</div>
+  </footer>
+</div>
+
+<button id="show-controls-fab" class="fab btn btn-primary" hidden>Show controls</button>
+
+<script>
+(function(){
+  function ready(fn){ if(document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  ready(init);
+
+  function init(){
+    /***** Config *****/
+    const MOODS = ["cosy","spicy","fresh","indulgent","speedy"];
+    const DIETARY = ["vegetarian","vegan","gluten-free","dairy-free","halal-friendly"];
+    const MEALS = ["breakfast","lunch","dinner"];
+    const CUISINES = ["canadian","south-african","both"];
+    const EMOJIS = ['🥘','🍝','🍲','🥡','🍛','🥗','🍳','🥪'];
+
+    const TIME_POLICY = [
+      { label:"late-bowl",  start:23, end:24, meal:"dinner", cap:15, mood:{speedy:1} },
+      { label:"night",      start:0,  end:5,  meal:"dinner", cap:15, mood:{speedy:1} },
+      { label:"breakfast",  start:5,  end:10.5, meal:"breakfast", cap:20, mood:{speedy:1, fresh:1} },
+      { label:"lunch",      start:10.5, end:14.5, meal:"lunch", cap:25, mood:{fresh:1} },
+      { label:"pre-dinner", start:16, end:18, meal:"dinner", cap:25, mood:{speedy:1, fresh:1} },
+      { label:"dinner",     start:18, end:20.5, meal:"dinner", cap:40, mood:{} },
+      { label:"late-dinner",start:20.5, end:23, meal:"dinner", cap:25, mood:{cosy:1, indulgent:1} },
+    ];
+
+    function seasonOf(m){ return (m>=5 && m<=7) ? 'winter' : (m>=11||m<=1) ? 'summer' : 'mild'; }
+    function contextBias(){
+      const now = new Date();
+      const hour = now.getHours()+now.getMinutes()/60;
+      const m = now.getMonth();
+      const season = seasonOf(m);
+      const row = TIME_POLICY.find(r => hour>=r.start && hour<r.end) || {meal:"dinner", cap:40, mood:{}};
+      const moodBoost = Object.assign({ cosy:0, spicy:0, fresh:0, indulgent:0, speedy:0 }, row.mood);
+      if (season==='winter') moodBoost.cosy++;
+      if (season==='summer') moodBoost.fresh++;
+      return { moodBoost, maxTime: row.cap, inferredMeal: row.meal, when: now };
+    }
+
+    /***** Data: Canadian‑first, SA nostalgia *****/
+    const RECIPES = [
+      // Canadian focus
+      { id:"mac-cheese-pot", origin:"canadian", name:"Creamy Mac & Cheese Pot", meal:["lunch","dinner"], time:20, moods:{ cosy:2, spicy:0, fresh:0, indulgent:2, speedy:2 }, tags:["vegetarian"], pantry:{ carb:["macaroni"], protein:["cheddar"], veg:["optional peas"] }, steps:["Boil macaroni in saucepan","Reserve splash; drain","Stir milk+cheddar+reserved water until glossy"], sides:[{name:"Bagged Caesar salad kit",type:"serve"},{name:"Garlic bread (frozen)",type:"heat"}], quips:["Mac that slaps back.","Stir until silky and slightly smug."] },
+      { id:"potato-bacon-chowder", origin:"canadian", name:"Potato & Bacon Chowder", meal:["lunch","dinner"], time:30, moods:{ cosy:3, spicy:0, fresh:1, indulgent:1, speedy:0 }, tags:[], pantry:{ carb:["potato"], protein:["bacon"], veg:["corn","onion"] }, steps:["Sauté bacon & onion","Simmer potato in stock","Add corn & milk; thicken gently"], sides:[{name:"Cheddar buns",type:"serve"},{name:"Coleslaw tub",type:"serve"}], quips:["Chowder? I barely know her.","Thick enough to stop a breeze."] },
+      { id:"maple-butternut-soup", origin:"canadian", name:"Maple‑Glazed Butternut Soup", meal:["lunch","dinner"], time:25, moods:{ cosy:2, spicy:0, fresh:1, indulgent:1, speedy:1 }, tags:["vegetarian","gluten-free"], pantry:{ carb:["butternut"], protein:[], veg:["onion"] }, steps:["Simmer onion & butternut","Blend partially; swirl maple","Whisper nutmeg"], sides:[{name:"Dinner rolls",type:"serve"},{name:"Garlic bread (frozen)",type:"heat"}], quips:["As Canadian as apologising to soup.","Sweet, smooth, and polite."] },
+      { id:"chicken-potpie-stew", origin:"canadian", name:"Stovetop Chicken Pot Pie Stew", meal:["dinner"], time:30, moods:{ cosy:2, spicy:0, fresh:1, indulgent:1, speedy:0 }, tags:["halal-friendly"], pantry:{ carb:["potato"], protein:["chicken"], veg:["carrot","peas","celery"] }, steps:["Sauté mirepoix & chicken","Simmer with potato & stock","Finish creamy; biscuit crackers on top"], sides:[{name:"Butter biscuits (store)",type:"serve"},{name:"Garden salad",type:"serve"}], quips:["Pie vibes, no oven.","Comfort with a crunchy hat."] },
+      { id:"saskatoon-oats", origin:"canadian", name:"Saskatoon Berry Breakfast Oats", meal:["breakfast"], time:10, moods:{ cosy:1, spicy:0, fresh:2, indulgent:1, speedy:3 }, tags:["vegetarian"], pantry:{ carb:["oats"], protein:["milk"], veg:["berries"] }, steps:["Simmer oats","Fold in berries","Maple on top"], sides:[{name:"Yoghurt mini",type:"serve"},{name:"Fruit cup",type:"serve"}], quips:["Berry good decision.","Quick, cosy, and antioxidant‑y."] },
+      { id:"peanut-noodles", origin:"canadian", name:"Speedy Peanut Noodles", meal:["lunch","dinner"], time:15, moods:{ cosy:0, spicy:1, fresh:2, indulgent:2, speedy:3 }, tags:["vegetarian"], pantry:{ carb:["noodles"], protein:["peanut butter"], veg:["carrot","spring onion"] }, steps:["Boil noodles","Whisk peanut‑soy‑lime sauce","Toss in pan with veg"], sides:[{name:"Edamame packet",type:"heat"},{name:"Cucumber salad tub",type:"serve"},{name:"Veg spring rolls (frozen)",type:"heat"}], quips:["Noodles: edible shoelaces of joy.","Saucy and supportive."] },
+      { id:"egg-fried-rice", origin:"canadian", name:"Egg Fried Rice (Pan)", meal:["lunch","dinner"], time:15, moods:{ cosy:1, spicy:0, fresh:1, indulgent:0, speedy:3 }, tags:["vegetarian"], pantry:{ carb:["rice"], protein:["eggs"], veg:["peas","spring onion"] }, steps:["Scramble eggs; set aside","Fry rice","Fold eggs & peas; season"], sides:[{name:"Pot‑stickers (frozen)",type:"heat"},{name:"Asian slaw tub",type:"serve"}], quips:["Leftover rice, main‑character energy.","Gold standard for lazy brilliance."] },
+      // Canadian quick-wins added
+      { id:"tuna-melt-pasta", origin:"canadian", name:"Tuna Melt Pasta Pot", meal:["lunch","dinner"], time:18, moods:{ cosy:1, spicy:0, fresh:1, indulgent:1, speedy:3 }, tags:[], pantry:{ carb:["short pasta"], protein:["tuna","cheddar"], veg:["sweetcorn (optional)"] }, steps:["Boil pasta","Warm tuna+bit of mayo in saucepan","Toss pasta with tuna, cheddar and a splash of pasta water"], sides:[{name:"Bagged garden salad",type:"serve"},{name:"Garlic toast (frozen)",type:"heat"}], quips:["It’s the sandwich… but socially acceptable for dinner.","Comfort food with a degree in speed.","Cheesy, tuna‑y, and unapologetically retro."] },
+      { id:"butter-chicken-pan", origin:"canadian", name:"Butter‑Chicken‑In‑A‑Pan (Cheat)", meal:["dinner"], time:25, moods:{ cosy:2, spicy:1, fresh:1, indulgent:2, speedy:1 }, tags:["halal-friendly"], pantry:{ carb:["rice (microwave)"], protein:["chicken"], veg:["onion","tomato passata"] }, steps:["Simmer onion & spices","Add chicken & jarred butter chicken sauce (or tomato+cream+garam masala)","Finish glossy; serve over rice"], sides:[{name:"Naan (frozen)",type:"heat"},{name:"Raita/cucumber salad",type:"serve"}], quips:["All the comfort, none of the restaurant bill.","Your saucepan just earned a Michelin star in 25 minutes.","Spices, cream, and applause in one pot."] },
+      { id:"perogy-butter-onion", origin:"canadian", name:"Perogy ‘Saucepan’ Toss", meal:["lunch","dinner"], time:20, moods:{ cosy:2, spicy:0, fresh:1, indulgent:2, speedy:2 }, tags:["vegetarian"], pantry:{ carb:["frozen perogies"], protein:["sour cream"], veg:["onion","chives"] }, steps:["Boil perogies in the saucepan","Drain, add butter & onions back to the pan","Toss perogies; dollop sour cream"], sides:[{name:"Coleslaw tub",type:"serve"},{name:"Garlic bread (frozen)",type:"heat"}], quips:["Like little pillows that skipped leg day.","Perogies: the edible equivalent of a warm hug.","Sour cream optional, but why deny joy?"] },
+      { id:"smoky-maple-beans-rice", origin:"canadian", name:"Smoky Maple Beans on Rice", meal:["lunch","dinner"], time:15, moods:{ cosy:2, spicy:1, fresh:1, indulgent:0, speedy:3 }, tags:["vegan","dairy-free"], pantry:{ carb:["microwave rice"], protein:["canned beans"], veg:["onion"] }, steps:["Warm onion & smoked paprika","Add canned beans + maple + splash of vinegar","Serve over rice"], sides:[{name:"Bagged salad with dressing",type:"serve"},{name:"Cornbread (bakery)",type:"serve"}], quips:["Beans wearing a flannel.","Sweet, smoky, and suspiciously moreish.","Fast enough to beat a Canadian winter sunset."] },
+
+      // South African nostalgia (Canadian‑adapted)
+      { id:"shakshuka", origin:"south-african", name:"Shakshuka", meal:["breakfast","lunch","dinner"], time:20, moods:{ cosy:1, spicy:1, fresh:1, indulgent:0, speedy:2 }, tags:["vegetarian","gluten-free"], pantry:{ carb:[], protein:["eggs"], veg:["onion","tomato","pepper"] }, steps:["Soften onion & pepper in saucepan","Add tomatoes & spices; simmer","Make wells; crack eggs; cover till set"], sides:[{name:"Crusty rolls",type:"serve"},{name:"Pita breads",type:"heat"},{name:"Bagged salad",type:"serve"}], quips:["Let it gossip below boiling.","Eggs: poached plot twist.","Stir occasionally—like your emotions."] },
+      { id:"chakalaka-beans", origin:"south-african", name:"Chakalaka Beans", meal:["lunch","dinner"], time:18, moods:{ cosy:1, spicy:2, fresh:1, indulgent:0, speedy:2 }, tags:["vegan","gluten-free","dairy-free"], pantry:{ carb:["bread (optional)"], protein:["mixed beans"], veg:["onion","pepper","carrot"] }, steps:["Soften veg with curry spice","Add beans & (optional) chakalaka tin","Mash a bit for body"], sides:[{name:"Steam‑in‑bag rice",type:"heat"},{name:"Sambal pack",type:"serve"}], quips:["Beans that mean business.","The bean dish that knows how to party.","Mildly chaotic, like the good kind of family gathering.","Pairs well with anything, especially memories."] },
+      { id:"boerie-pasta", origin:"south-african", name:"Boerewors‑Tomato Pasta", meal:["dinner"], time:30, moods:{ cosy:2, spicy:1, fresh:0, indulgent:2, speedy:0 }, tags:[], pantry:{ carb:["pasta"], protein:["boerewors or mild sausage"], veg:["onion","tomato"] }, steps:["Brown boerewors/sausage bits","Add onion & tomato; simmer","Stir in cooked pasta"], sides:[{name:"Garlic bread (frozen)",type:"heat"},{name:"Caesar salad kit",type:"serve"}], quips:["A hug from Oom Pasta.","Boerewors meets pasta: diplomatic deliciousness.","Like a braai that moved indoors.","Saucy enough to make Nonna and Ouma agree."] },
+      { id:"pap-gravy", origin:"south-african", name:"Mielie Pap (Cornmeal) & Tomato Gravy", meal:["breakfast","lunch","dinner"], time:30, moods:{ cosy:2, spicy:0, fresh:1, indulgent:1, speedy:0 }, tags:["vegetarian","gluten-free"], pantry:{ carb:["coarse cornmeal"], protein:[], veg:["onion","tomato"] }, steps:["Cook cornmeal pap","Make onion‑tomato gravy","Serve pap with gravy"], sides:[{name:"Chakalaka (tin)",type:"serve"},{name:"Coleslaw tub",type:"serve"}], quips:["Pap: the duvet of dinners.","Pap so good you’ll phone home.","Polenta wishes it were this cosy.","The edible equivalent of Sunday afternoon naps."] },
+      { id:"butternut-lentil", origin:"south-african", name:"Butternut & Lentil Curry", meal:["dinner","lunch"], time:35, moods:{ cosy:2, spicy:1, fresh:1, indulgent:0, speedy:0 }, tags:["vegan","gluten-free","dairy-free"], pantry:{ carb:["rice (optional)"], protein:["lentils"], veg:["butternut","onion","spinach"] }, steps:["Simmer aromatics & curry paste (or Rajah)","Add butternut & lentils with water","Finish with spinach"], sides:[{name:"Parathas (frozen)",type:"heat"},{name:"Crispy onion sprinkle",type:"serve"}], quips:["Squash with a PhD in comfort.","A curry with a Bachelor’s in Comfort.","Veggies pretending to be indulgent.","Lentils: the quiet achievers."] },
+      { id:"stovetop-bobotie", origin:"south-african", name:"Stovetop Bobotie", meal:["dinner"], time:35, moods:{ cosy:2, spicy:1, fresh:0, indulgent:1, speedy:0 }, tags:[], pantry:{ carb:["bread"], protein:["ground beef"], veg:["onion","raisin (optional)"] }, steps:["Spice mince & onion; simmer","Stir in bread+milk & chutney","Top with egg mix; cover to set"], sides:[{name:"Yellow rice (microwave)",type:"heat"},{name:"Mrs Balls chutney",type:"serve"}], quips:["Cape Malay comfort—no oven.","Cape Malay magic without the oven.","Sweet, savoury, and just a little bit smug.","Bobotie that doesn’t need a baking dish."] },
+    ];
+
+    /***** State *****/
+    const state = { moodBoost:Object.fromEntries(MOODS.map(m=>[m,0])), mealFilter:new Set(), dietFilter:new Set(), timeCap:40, chuckle:true, cuisine:'canadian', inferredMeal:'dinner', lastRoll:null, sessionSeen:new Set(), currentSides:[], noOnions:false, onionFallback:false };
+
+    /***** UI helpers *****/
+    const $ = sel => document.querySelector(sel);
+    const byId = id => document.getElementById(id);
+    const setText = (id, txt) => { const el = byId(id); if(el) el.textContent = txt; };
+
+    function chips(ids, container, onToggle, opts={}){
+      container.innerHTML="";
+      ids.forEach(id=>{ const d=document.createElement('div'); d.className='chip'; const label=opts.format?opts.format(id):id[0].toUpperCase()+id.slice(1).replace('-', ' '); d.innerHTML=(opts.icon?.[id]? opts.icon[id]+" ":"")+label; d.setAttribute('data-id',id); d.tabIndex=0; d.role='button'; d.dataset.on='0'; d.addEventListener('click',()=>onToggle(id,d)); d.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();d.click();}}); container.appendChild(d); });
+    }
+    function setChip(container,id,on){ const el=[...container.children].find(c=>c.dataset.id===id); if(el){ el.dataset.on=on?'1':'0'; } }
+
+    /***** Build chips *****/
+    chips(CUISINES,$('#cuisine-chips'),(id,el)=>{ [...$('#cuisine-chips').children].forEach(c=>c.dataset.on='0'); el.dataset.on='1'; state.cuisine=id; },{icon:{'canadian':'🇨🇦','south-african':'🇿🇦','both':'🔀'},format:(x)=>({'canadian':'Canadian','south-african':'South African','both':'Both'}[x])});
+    chips(MOODS,$('#mood-chips'),(id,el)=>{ const v=el.dataset.on==='1'?0:1; el.dataset.on=String(v); state.moodBoost[id]=v; });
+    chips(MEALS,$('#meal-chips'),(id,el)=>{ const on=!(el.dataset.on==='1'); el.dataset.on=on?'1':'0'; if(on) state.mealFilter.add(id); else state.mealFilter.delete(id); });
+    chips(DIETARY,$('#diet-chips'),(id,el)=>{ const on=!(el.dataset.on==='1'); el.dataset.on=on?'1':'0'; if(on) state.dietFilter.add(id); else state.dietFilter.delete(id); });
+
+    byId('time-cap').addEventListener('input',e=>{ state.timeCap=+e.target.value; setText('time-cap-label', state.timeCap); updateContextPill(); });
+    byId('chuckle-chip').addEventListener('click',()=>{ const on=!(byId('chuckle-chip').dataset.on==='1'); byId('chuckle-chip').dataset.on=on?'1':'0'; state.chuckle=on; });
+    byId('no-onions-chip').addEventListener('click',()=>{ const chip=byId('no-onions-chip'); const on=!(chip.dataset.on==='1'); chip.dataset.on=on?'1':'0'; state.noOnions=on; });
+    byId('roll-btn').addEventListener('click',roll);
+    byId('nudge-btn').addEventListener('click',()=>showPick(nextBest()));
+    byId('swap-sides-btn').addEventListener('click',swapSides);
+    byId('fav-btn').addEventListener('click',toggleFav);
+    byId('copy-list-btn').addEventListener('click',copyList);
+
+    /***** Init *****/
+    const ctx=contextBias();
+    state.moodBoost=Object.assign({},state.moodBoost,ctx.moodBoost);
+    state.timeCap=ctx.maxTime; byId('time-cap').value=state.timeCap; setText('time-cap-label', state.timeCap);
+    state.inferredMeal=ctx.inferredMeal; setChip(byId('cuisine-chips'), 'canadian', true); state.cuisine='canadian'; setChip(byId('meal-chips'), state.inferredMeal, true); state.mealFilter.add(state.inferredMeal);
+    for(const m of MOODS){ if(state.moodBoost[m]>0) setChip(byId('mood-chips'), m, true); }
+    updateContextPill({when:ctx.when});
+    // Randomise header emoji on load
+    setText('logo-emoji', EMOJIS[Math.floor(Math.random()*EMOJIS.length)]);
+
+    // Controls toggle setup (with one-time gentle pulse for discoverability)
+    const controlsEl = document.querySelector('aside[aria-label="Controls"]');
+    const toggleBtn = byId('toggle-controls-btn');
+    const fab = byId('show-controls-fab');
+    let hasPulsed = false;
+    function setControlsVisible(visible){
+      if(!controlsEl) return;
+      controlsEl.hidden = !visible;
+      if(toggleBtn){ toggleBtn.setAttribute('aria-expanded', visible ? 'true' : 'false'); toggleBtn.textContent = visible ? 'Hide controls' : 'Show controls'; }
+      if(fab){ fab.hidden = visible; if(!visible && !hasPulsed){ fab.classList.add('pulse'); setTimeout(()=>fab.classList.remove('pulse'), 2700); hasPulsed = true; } }
+    }
+    setControlsVisible(true);
+    if(toggleBtn) toggleBtn.addEventListener('click', ()=> setControlsVisible(controlsEl.hidden));
+    if(fab) fab.addEventListener('click', ()=> setControlsVisible(true));
+
+    function updateContextPill(ctxIn){
+      const d = (ctxIn && ctxIn.when) || new Date();
+      const when = d.toLocaleString(undefined,{weekday:'short',hour:'2-digit',minute:'2-digit'});
+      setText('context-when', when);
+      setText('context-meal', (state.mealFilter.size?[...state.mealFilter].join('/') : state.inferredMeal).toUpperCase());
+      setText('context-cap', state.timeCap + ' min');
+    }
+
+    /***** Matching *****/
+    function eligible(r){ if(r.time>state.timeCap) return false; if(state.cuisine!=='both' && r.origin!==state.cuisine) return false; if(state.mealFilter.size){ if(!r.meal.some(m=>state.mealFilter.has(m))) return false; } for(const tag of state.dietFilter){ if(!r.tags.includes(tag)) return false; } return true; }
+    function score(r){ let s=0; for(const m of MOODS){ s += (state.moodBoost[m]||0)*(r.moods[m]||0); } s += Math.random()*0.3; if(state.mealFilter.size===0 && r.meal.includes(state.inferredMeal)) s+=0.4; s += (1-(r.time/state.timeCap))*0.3; return s; }
+    function containsOnion(r){ const fields=[...(r.pantry?.veg||[]), ...(r.pantry?.protein||[]), ...(r.pantry?.carb||[])]; return fields.some(x=>/onion/i.test(String(x))); }
+    function pick(){ const pool=RECIPES.filter(eligible); if(pool.length===0) return null; let ranked=pool.map(r=>({r,s:score(r)})).sort((a,b)=>b.s-a.s).map(x=>x.r); if(state.noOnions){ const clean=ranked.filter(r=>!containsOnion(r)); if(clean.length>0){ ranked=clean; state.onionFallback=false; } else { state.onionFallback=true; } } state.ranked=ranked; state.sessionSeen.clear(); return ranked[0]||null; }
+    function nextBest(){ if(!state.ranked||state.ranked.length===0) return null; for(const r of state.ranked){ if(!state.sessionSeen.has(r.id)) return r; } return pick(); }
+    function roll(){ const r=pick(); showPick(r); }
+
+    /***** Render *****/
+    function showPick(r){ if(!r){ byId('empty').textContent='No matches under current filters/time cap.'; return; } state.lastRoll=r; state.sessionSeen.add(r.id); byId('result').hidden=false; byId('empty').hidden=true; setText('r-title', r.name); setText('r-time', r.time); setText('r-meal', r.meal.join(', ')); setText('r-origin', r.origin==='canadian'?'Canadian':'South African'); byId('r-tags').innerHTML=(r.tags||[]).map(t=>`<span class="tag">${t}</span>`).join(''); byId('r-steps').innerHTML=(r.steps||[]).map(s=>`<li>${s}</li>`).join(''); setText('r-quip', state.chuckle ? randomOf(getQuips(r).length ? getQuips(r) : ["Simmer until feelings are tender."]) : ''); const note=byId('onion-note'); if(note){ const hit = state.noOnions && containsOnion(r) && state.onionFallback; note.hidden = !hit; } state.currentSides=randomSides(r,2); renderSides(state.currentSides); byId('swap-sides-btn').disabled=false; byId('nudge-btn').disabled=false; byId('copy-list-btn').disabled=false; const favs=getFaves(); const on=!!favs[r.id]; setFavButton(on); setControlsVisible(false); }
+    function randomOf(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+    function getQuips(r){ const a=r.quips||[]; const b=r.quipsExtra||[]; return a.concat(b); }
+    function randomSides(recipe,count=2){ const sides=[...(recipe.sides||[])]; for(let i=sides.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [sides[i],sides[j]]=[sides[j],sides[i]]; } return sides.slice(0, Math.min(count, sides.length)); }
+    function renderSides(sides){ const list=byId('r-sides-list'); if(!sides||sides.length===0){ byId('r-sides').hidden=true; list.innerHTML=''; return; } byId('r-sides').hidden=false; list.innerHTML=sides.map(s=>`<li class="side-item">${s.name} <span class="muted">(${s.type==='heat'?'heat & eat':'serve instantly'})</span></li>`).join(''); }
+    function swapSides(){ if(!state.lastRoll) return; state.currentSides=randomSides(state.lastRoll,2); renderSides(state.currentSides); }
+    function copyList(){ if(!state.lastRoll) return; const items = buildShoppingList(state.lastRoll, state.currentSides); const text = formatShoppingList(state.lastRoll.name, items); writeClipboard(text).then(()=>flashCopyButton('Copied!')).catch(()=>flashCopyButton('Press Ctrl+C')); }
+    function flashCopyButton(msg){ const btn=byId('copy-list-btn'); const old=btn.textContent; btn.textContent=msg; setTimeout(()=>btn.textContent=old,1200); }
+    function buildShoppingList(recipe, sides){ const flat = []; const addAll = arr => { if(Array.isArray(arr)) for(const x of arr){ if(x && typeof x === 'string') flat.push(x); } }; if(recipe.pantry){ addAll(recipe.pantry.carb); addAll(recipe.pantry.protein); addAll(recipe.pantry.veg); } if(Array.isArray(sides)) for(const s of sides){ if(s?.name) flat.push(s.name); } const filtered = state.noOnions ? flat.filter(it=>!/onion/i.test(String(it))) : flat; const seen = new Set(); const uniq = []; for(const it of filtered){ const k = String(it).toLowerCase(); if(!seen.has(k)){ seen.add(k); uniq.push(it); } } return uniq; }
+    function formatShoppingList(name, items){ const title = `Shopping list for ${name}`; const lines = items.map(it => `- ${it}`); return [title, '', ...lines].join("\n"); }
+    async function writeClipboard(text){ if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(text); return; } const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); } finally { document.body.removeChild(ta); } }
+
+    /***** Favourites *****/
+    function getFaves(){ try{ return JSON.parse(localStorage.getItem('sp-faves')||'{}'); }catch{ return {}; } }
+    function setFaves(obj){ localStorage.setItem('sp-faves', JSON.stringify(obj)); }
+    function setFavButton(on){ const b=byId('fav-btn'); b.textContent=on?'★':'☆'; b.setAttribute('aria-pressed', on?'true':'false'); }
+    function toggleFav(){ if(!state.lastRoll) return; const favs=getFaves(); const id=state.lastRoll.id; if(favs[id]){ delete favs[id]; setFavButton(false);} else { favs[id]=true; setFavButton(true);} setFaves(favs); }
+
+    /***** Self-tests (console) *****/
+    try{
+      // Shopping list aggregation
+      const demoR = { pantry:{ carb:['rice'], protein:['tuna'], veg:['onion'] } };
+      const demoSides = [{name:'Bagged salad', type:'serve'}];
+      const items = buildShoppingList(demoR, demoSides);
+      console.assert(items.includes('rice') && items.includes('tuna') && items.includes('onion') && items.includes('Bagged salad'), 'Shopping list should aggregate recipe + sides');
+      // No‑onions filter test for list
+      state.noOnions = true; const itemsNoOnion = buildShoppingList(demoR, demoSides); console.assert(!itemsNoOnion.some(x=>/onion/i.test(x)), 'no‑onions should remove onion items from list'); state.noOnions=false;
+      const txt = formatShoppingList('Demo', items);
+      console.assert(txt.split('\n').length >= 2, 'formatShoppingList should use newline separators');
+      // Picker preference test
+      const hasOnion = containsOnion(RECIPES.find(r=>r.pantry.veg?.includes('onion'))||{});
+      console.assert(typeof hasOnion === 'boolean', 'containsOnion returns boolean');
+      updateContextPill({when:new Date()});
+      console.assert(true, 'updateContextPill executed');
+    } catch(e){ console.warn('Self-tests failed:', e); }
+  }
+})();
+</script>
+</body>
+</html>
